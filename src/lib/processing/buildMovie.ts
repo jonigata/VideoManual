@@ -2,7 +2,8 @@ import {
   FFmpeg,
   type FFmpegConfigurationGPLExtended,
 } from '@diffusion-studio/ffmpeg-js';
-import { createCroppedCanvas, drawCaption } from './imageEdit';
+import { createCroppedCanvas, drawCaption, loadImage } from './imageEdit';
+import { renderOpeningToMultipleCanvases } from './opening';
 
 export interface RawScene {
   key: number;
@@ -17,23 +18,32 @@ export interface Scene {
   canvas: HTMLCanvasElement;
 }
 
-export async function createOverlayedVideo(w: number, h: number, d: number, scenes: Scene[], source: Blob): Promise<string> {
-  const ffmpeg = new FFmpeg<FFmpegConfigurationGPLExtended>({
-    config: 'gpl-extended',
-  });
-  await waitForReady(ffmpeg);
+const ffmpeg = new FFmpeg<FFmpegConfigurationGPLExtended>({
+  config: 'gpl-extended',
+});
+
+export async function createOverlayedVideo({w, h}: {w: number, h: number}, {sw, sh}: {sw: number, sh: number}, d: number, scenes: Scene[], source: Blob): Promise<string> {
+  // 動画を、アスペクト比を維持したまま外枠の最大内接矩形にリサイズししたとき、
+  // その残りの半分が壁の幅
+  const wallWidth = (w - h * sw / sh) / 2;
+
+  await waitForReady();
 
   // 下レイヤー
   await ffmpeg.writeFile('back.mp4', source);
 
   // 上レイヤー
-  await createVideoWithImages(ffmpeg, w, h, d, scenes);
+  await createVideoWithImages(w, h, d, scenes);
+
+  // オープニング
+  await createOpeningMovie(w, h, wallWidth);
 
   // フィルターコンプレックスを使って動画をオーバーレイ
   console.log("************************************** B");
   await ffmpeg.exec([
-    '-i', 'back.mp4', '-i', 'front.mp4',
-    '-filter_complex', '[0:v][1:v]overlay=format=auto',
+    '-i', 'back.mp4', '-i', 'opening.mov',
+    '-filter_complex', 
+    `[0:v]scale=${w}:${h}:force_original_aspect_ratio=decrease,pad=${w}:${h}:(ow-iw)/2:(oh-ih)/2[back_scaled];[back_scaled][1:v]overlay=0:0`,
     'output.mp4'
   ]);
 
@@ -43,12 +53,12 @@ export async function createOverlayedVideo(w: number, h: number, d: number, scen
   return url;
 }
 
-async function createVideoWithImages(ffmpeg: FFmpeg<FFmpegConfigurationGPLExtended>, w: number, h: number, d: number, scenes: Scene[]): Promise<string> {
+async function createVideoWithImages(w: number, h: number, d: number, scenes: Scene[]): Promise<void> {
   console.log('createVideoWithImages');
   // 各画像をファイルシステムに書き込む
   for (let i = 0; i < scenes.length; i++) {
     const scene = scenes[i];
-    await writeCanvasToFile(ffmpeg, scene.canvas, `image${i}.png`);
+    await writeCanvasToFile(scene.canvas, `image${i}.png`);
   }
 
   // 各画像の表示時間を設定するファイルを作成
@@ -76,15 +86,33 @@ async function createVideoWithImages(ffmpeg: FFmpeg<FFmpegConfigurationGPLExtend
   console.log("************************************** A");
   await ffmpeg.exec([
     '-f', 'concat', '-safe', '0', '-i', fileListFilename, 
-    '-vcodec', 'libvpx-vp9',
-    '-vsync', 'vfr', '-pix_fmt', 'yuva420p',
+    '-vcodec', 'prores_ks',
     '-s', `${w}x${h}`,
-    'front.mp4'
+    'front.mov'
   ]);
 }
 
+async function createOpeningMovie(w: number, h: number, wallWidth: number) {
+  const canvases = await renderOpeningToMultipleCanvases(w, h, wallWidth);
 
-async function createSolidVideo(ffmpeg: FFmpeg<FFmpegConfigurationGPLExtended>, filename: string, color: string, w: number, h: number, duration: number): Promise<void> {
+  // 各画像をファイルシステムに書き込む
+  console.log("************************************** C", canvases.length);
+  for (let i = 0; i < canvases.length; i++) {
+    document.body.appendChild(canvases[i]);
+    await writeCanvasToFile(canvases[i], `opening${i}.png`);
+  }
+
+  // canvasの作成
+  // ffmpeg -framerate 24 -i image%03d.jpg -c:v libx264 -pix_fmt yuv420p output.mp4
+  await ffmpeg.exec([
+    '-framerate', '30', '-i', 'opening%d.png',
+    '-vcodec', 'prores_ks',
+    '-s', `${w}x${h}`,
+    'opening.mov'
+  ]);
+}
+
+async function createSolidVideo(filename: string, color: string, w: number, h: number, duration: number): Promise<void> {
   await ffmpeg.exec([
     '-f', 'lavfi', 
     '-i', `color=c=${color}:s=${w}x${h}:r=30:d=${duration}`,
@@ -93,13 +121,13 @@ async function createSolidVideo(ffmpeg: FFmpeg<FFmpegConfigurationGPLExtended>, 
   ]);
 }
 
-async function waitForReady(ffmpeg: FFmpeg<FFmpegConfigurationGPLExtended>): Promise<void> {
+async function waitForReady(): Promise<void> {
   return new Promise((resolve, reject) => {
     ffmpeg.whenReady(() => resolve());
   });
 }
 
-async function writeCanvasToFile(ffmpeg: FFmpeg<FFmpegConfigurationGPLExtended>, canvas: HTMLCanvasElement, filename: string): Promise<void> {
+async function writeCanvasToFile(canvas: HTMLCanvasElement, filename: string): Promise<void> {
   return new Promise((resolve, reject) => {
     canvas.toBlob(async blob => {
       if (blob) {
@@ -109,15 +137,6 @@ async function writeCanvasToFile(ffmpeg: FFmpeg<FFmpegConfigurationGPLExtended>,
         reject(new Error('Failed to create Blob from canvas'));
       }
     }, 'image/png');
-  });
-}
-
-async function loadImage(url: string): Promise<HTMLImageElement> {
-  return new Promise((resolve, reject) => {
-    const img = new Image();
-    img.onload = () => resolve(img);
-    img.onerror = () => reject(new Error(`Failed to load image at ${url}`));
-    img.src = url;
   });
 }
 

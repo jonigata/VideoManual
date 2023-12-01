@@ -7,6 +7,7 @@
   import { onMount } from "svelte";
   import Font from "./lib/Font.svelte";
   import Dropzone from "svelte-file-dropzone/Dropzone.svelte";
+  import Motion from "./lib/Motion.svelte";
 
 //  let videoSource: string = "./6c14a8db-b57f-4fd7-82ac-4be607484725.mp4";
   let sourceVideo: string = '';
@@ -15,8 +16,8 @@
   let trackSrc = '';
   let srclang = 'en';
   let label = 'english_captions';
-  let { sw, sh } = { sw: 640, sh: 360 };    // videoそのもののサイズ
-  let { w, h } = { w: 640, h: 360 };        // elementのサイズ
+  let { sw, sh } = { sw: 1280, sh: 640 };    // videoそのもののサイズ
+  let { w, h } = { w: 1280, h: 640 };        // elementのサイズ
   let file: File;
 
   let inputElement: HTMLInputElement;
@@ -45,8 +46,8 @@
         caption: 'またね！'
       },
     ];
-    const scenes = await buildScenes(sw, sh, script);
-    generatedVideo = await createOverlayedVideo(sw, sh, 5, scenes, file);
+    const scenes = await buildScenes(w, h, script);
+    generatedVideo = await createOverlayedVideo({w, h}, {sw, sh}, 5, scenes, file);
 /*
     const a = document.createElement('a');
     a.href = videoSource;
@@ -68,13 +69,6 @@
     const video = e.target as HTMLVideoElement;
     sw = video.videoWidth;
     sh = video.videoHeight;
-    // sw = 640;
-    // sh = 360;
-    w = video.clientWidth; // コンテナまたはビデオの現在の幅
-    var aspectRatio = sh / sw;
-    h = w * aspectRatio;
-    video.style.height = h + 'px'; // 新しい高さを設定
-    console.log(w, h);
   }
 
   onMount(async () => {
@@ -84,28 +78,22 @@
 
 <div class="app-box">
   <HBox className="p-16 gap-16">
-    <Script/>
+    <!-- <Script/> -->
+    <Motion/>
     <VBox className="w-1/2 gap-8">
       <div>
         <Dropzone on:dropaccepted={onDrop} accept="video/*" inputElement={inputElement}>
-          <div class="drop-zone">
-            <div class="text-center">
-              <p class="text-lg">ファイルをここにドロップ</p>
-              <p class="text-sm text-gray-500">またはクリックしてファイルを選択</p>
-            </div>
-          </div>
+          <video class="video" controls src={sourceVideo} style="width: {w}px; height: {h}px;" on:loadedmetadata={onLoadedMetaData}> 
+            <track src={trackSrc} kind="captions" {srclang} {label} />
+            Your browser does not support the video tag.
+          </video>
+          <p class="text-lg">ファイルをここにドロップ</p>
         </Dropzone>
         <input type="file" class="hidden" accept=".mp4,.avi,.mov,.webm" bind:this={inputElement}>
       </div>
       <div class="h-full flex flex-col gap-2 items-center">
-        <div id="videoContainer" style="width: 100%; max-width: 640px; /* この幅が最大値 */">
-          <video class="video" controls src={sourceVideo} on:loadedmetadata={onLoadedMetaData}> 
-            <track src={trackSrc} kind="captions" {srclang} {label} />
-            Your browser does not support the video tag.
-          </video>
-        </div>
         <button class="w-full" on:click={onClick}>生成</button>
-        <video class="video" controls src={generatedVideo}  style="width: {w}px; height: {h}px;">
+        <video class="video" controls src={generatedVideo} style="width: {w}px; height: {h}px;">
           <track src={trackSrc} kind="captions" {srclang} {label} />
           Your browser does not support the video tag.
         </video>
