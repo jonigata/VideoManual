@@ -4,7 +4,7 @@
 let canvas: HTMLCanvasElement;
 
   async function startOpening() {
-    await renderOpeningToSingleCanvas(canvas, 100);
+    await renderOpeningToSingleCanvas(canvas, 100, "富士山麓オウム鳴く");
   }
 
 </script>

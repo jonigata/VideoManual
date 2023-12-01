@@ -1,128 +1,42 @@
 <script lang="ts">
-  import FileDropZone from "./lib/FileDropZone.svelte";
-  import HBox from "./lib/layout/HBox.svelte";
-  import VBox from "./lib/layout/VBox.svelte";
-  import Script from "./Script.svelte";
-  import { type RawScene, createOverlayedVideo, buildScenes } from './lib/processing/buildMovie';
-  import { onMount } from "svelte";
+  import Receiver from "./lib/Receiver.svelte";
+  import Editor from "./lib/editor/Editor.svelte";
   import Font from "./lib/Font.svelte";
-  import Dropzone from "svelte-file-dropzone/Dropzone.svelte";
   import Motion from "./lib/Motion.svelte";
+  import { SvelteToast } from '@zerodevx/svelte-toast'
 
-//  let videoSource: string = "./6c14a8db-b57f-4fd7-82ac-4be607484725.mp4";
-  let sourceVideo: string = '';
-  let generatedVideo: string = "./black_background.mp4";
+  let file: File | null = null;
 
-  let trackSrc = '';
-  let srclang = 'en';
-  let label = 'english_captions';
-  let { sw, sh } = { sw: 1280, sh: 640 };    // videoそのもののサイズ
-  let { w, h } = { w: 1280, h: 640 };        // elementのサイズ
-  let file: File;
-
-  let inputElement: HTMLInputElement;
-
-  async function onClick() {
-    const script: RawScene[] = [
-      { 
-        key: 0,
-        image: 'smile.png',
-        position: { x: 0.85, y: 0.6 },
-        scale: { x: 0.4, y: 0.4 },
-        caption: 'FramePlannerのチップスだよ！'
-      },
-      { 
-        key: 2,
-        image: 'standard.png',
-        position: { x: 0.85, y: 0.6 },
-        scale: { x: 0.4, y: 0.4 },
-        caption: 'なるほどね～'
-      },
-      { 
-        key: 4,
-        image: 'goodbye.png',
-        position: { x: 0.85, y: 0.6 },
-        scale: { x: 0.4, y: 0.4 },
-        caption: 'またね！'
-      },
-    ];
-    const scenes = await buildScenes(w, h, script);
-    generatedVideo = await createOverlayedVideo({w, h}, {sw, sh}, 5, scenes, file);
-/*
-    const a = document.createElement('a');
-    a.href = videoSource;
-    a.download = 'black_background.mp4';
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-*/
+  function onDrop(e: CustomEvent<File>) {
+    console.log("drop");
+    file = e.detail;
   }
-
-  function onDrop(e) {
-    const { acceptedFiles } = e.detail;
-    file = acceptedFiles[0];
-    sourceVideo = URL.createObjectURL(file);
-    trackSrc = sourceVideo;
-  }
-
-  function onLoadedMetaData(e: Event) {
-    const video = e.target as HTMLVideoElement;
-    sw = video.videoWidth;
-    sh = video.videoHeight;
-  }
-
-  onMount(async () => {
-  });
-
 </script>
 
 <div class="app-box">
-  <HBox className="p-16 gap-16">
-    <!-- <Script/> -->
+  {#if file != null}
+    <Editor bind:file={file}/>
+  {:else}
+    <div style="width: 1280px;height: 720px;">
+      <Receiver on:drop={onDrop}/>
+    </div>
     <Motion/>
-    <VBox className="w-1/2 gap-8">
-      <div>
-        <Dropzone on:dropaccepted={onDrop} accept="video/*" inputElement={inputElement}>
-          <video class="video" controls src={sourceVideo} style="width: {w}px; height: {h}px;" on:loadedmetadata={onLoadedMetaData}> 
-            <track src={trackSrc} kind="captions" {srclang} {label} />
-            Your browser does not support the video tag.
-          </video>
-          <p class="text-lg">ファイルをここにドロップ</p>
-        </Dropzone>
-        <input type="file" class="hidden" accept=".mp4,.avi,.mov,.webm" bind:this={inputElement}>
-      </div>
-      <div class="h-full flex flex-col gap-2 items-center">
-        <button class="w-full" on:click={onClick}>生成</button>
-        <video class="video" controls src={generatedVideo} style="width: {w}px; height: {h}px;">
-          <track src={trackSrc} kind="captions" {srclang} {label} />
-          Your browser does not support the video tag.
-        </video>
-      </div>
-      <div hidden>
-        <span style="font-family: '源暎エムゴ';">源暎エムゴ</span>
-        <span style="font-family: '源暎アンチック';">源暎アンチック</span>
-        <Font/>
-      </div>
-    </VBox>
-  </HBox>
+  {/if}
+  <div hidden>
+    <Font/>
+  </div>
 </div>
+
+<SvelteToast options={{ reversed: true, intro: { y: 192 } }} />
 
 <style>
   .app-box {
     width: 100vw;
     height: 100vh;
-  }
-  .video {
-    width: 640px;
-    height: 360px;
-  }
-  .drop-zone {
     display: flex;
+    flex-direction: column;
     justify-content: center;
     align-items: center;
-    border-radius: 0.5rem;
-    width: 480px;
-    height: 200px;
   }
 
   @font-face {
@@ -136,5 +50,13 @@
     src: url('./assets/fonts/GenEiAntiqueNv5-M.woff2') format('woff2');
     font-weight: normal;
     font-style: normal;
+  }
+
+  :root {
+    --toastContainerTop: auto;
+    --toastContainerRight: auto;
+    --toastContainerBottom: 2rem;
+    --toastContainerLeft: calc(50vw - 8rem);
+    --toastBorderRadius: 0.5rem;
   }
 </style>

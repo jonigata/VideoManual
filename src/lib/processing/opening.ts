@@ -74,7 +74,7 @@ function* label(caption: string): Generator<void, void, Screen> {
 }
 
 
-async function setUpOpeningGenerators(wallWidth: number) {
+async function setUpOpeningGenerators(wallWidth: number, caption: string) {
   const smile = await loadImage('smile.png');
 
   const gs: Generator<void, void, Screen>[] = [];
@@ -84,7 +84,7 @@ async function setUpOpeningGenerators(wallWidth: number) {
   gs.push(square(0.045, 450));
   gs.push(square(0.05, 700));
   gs.push(face(smile));
-  gs.push(label('フキダシつき画像を作ろう'));
+  gs.push(label(caption));
   return gs;
 }
 
@@ -96,7 +96,7 @@ export async function renderOpeningToSingleCanvas(canvas: HTMLCanvasElement, wal
   const fps = 30;
   const elapsed = 0;
 
-  const gs = await setUpOpeningGenerators(wallWidth);
+  const gs = await setUpOpeningGenerators(wallWidth, caption);
 
   const scr: Screen = { ctx, w, h, duration, fps, elapsed };
   await cycle(
@@ -113,7 +113,7 @@ export async function renderOpeningToMultipleCanvases(w: number, h: number, wall
   const duration = 2;
   const fps = 30;
 
-  const gs = await setUpOpeningGenerators(wallWidth);
+  const gs = await setUpOpeningGenerators(wallWidth, caption);
   const canvases: HTMLCanvasElement[] = [];
 
   await cycle(

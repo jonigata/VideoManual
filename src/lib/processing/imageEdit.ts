@@ -41,7 +41,7 @@ export function drawCaption(canvas: HTMLCanvasElement, caption: string, position
 
   tmpCtx.globalCompositeOperation = 'destination-over';
   tmpCtx.strokeStyle = "black";
-  tmpCtx.lineWidth = 8;
+  tmpCtx.lineWidth = 10;
   tmpCtx.lineJoin = 'round';
   tmpCtx.strokeText(caption, canvas.width * position.x, canvas.height * position.y);
 

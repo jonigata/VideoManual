@@ -40,9 +40,15 @@ devDependencies:
   '@sveltejs/vite-plugin-svelte':
     specifier: ^2.4.2
     version: 2.5.3(svelte@4.2.7)(vite@5.0.2)
+  '@zerodevx/svelte-toast':
+    specifier: ^0.9.5
+    version: 0.9.5(svelte@4.2.7)
   autoprefixer:
     specifier: ^10.4.14
     version: 10.4.16(postcss@8.4.31)
+  filedrop-svelte:
+    specifier: ^0.1.2
+    version: 0.1.2
   flowbite:
     specifier: ^2.2.0
     version: 2.2.0
@@ -555,6 +561,14 @@ packages:
     resolution: {integrity: sha512-FQXkOta0XBSUPHndIKON2Y9JeQz5ZeMqLYZVVK93FliNBFm7LNMIZmY6FrMEB9XPcDbE2bekMbZD6kzDkxwYjA==}
     dev: true
 
+  /@zerodevx/svelte-toast@0.9.5(svelte@4.2.7):
+    resolution: {integrity: sha512-JLeB/oRdJfT+dz9A5bgd3Z7TuQnBQbeUtXrGIrNWMGqWbabpepBF2KxtWVhL2qtxpRqhae2f6NAOzH7xs4jUSw==}
+    peerDependencies:
+      svelte: ^3.57.0 || ^4.0.0
+    dependencies:
+      svelte: 4.2.7
+    dev: true
+
   /acorn-walk@8.3.0:
     resolution: {integrity: sha512-FS7hV565M5l1R08MXqo8odwMTB02C2UqzB17RVgu9EyuYFBqJZ3/ZY97sQD5FewVu1UyDFc1yztUDrAwT0EypA==}
     engines: {node: '>=0.4.0'}
@@ -855,7 +869,13 @@ packages:
     engines: {node: '>= 10'}
     dependencies:
       tslib: 2.6.2
-    dev: false
+
+  /filedrop-svelte@0.1.2:
+    resolution: {integrity: sha512-S0Z+zCO2dy/g3tRjswD8pLEcorj78olkLWvhKEp511gwHUI6x+uWjXacuvFmRQnjbCCPByXzGlC5Asb9nPzUKw==}
+    dependencies:
+      file-selector: 0.2.4
+      pretty-bytes: 6.1.1
+    dev: true
 
   /fill-range@7.0.1:
     resolution: {integrity: sha512-qOo9F+dMUmC2Lcb4BbVvnKJxTPjCm+RRpe4gDuGrzkL7mEVl/djYSu2OdQ2Pa302N4oqkSg9ir6jaLWJ2USVpQ==}
@@ -1269,6 +1289,11 @@ packages:
       picocolors: 1.0.0
       source-map-js: 1.0.2
 
+  /pretty-bytes@6.1.1:
+    resolution: {integrity: sha512-mQUvGU6aUFQ+rNvTIAcZuWGRT9a6f6Yrg9bHs4ImKF+HZCEK+plBvnAZYSIQztknZF2qnzNtr6F8s0+IuptdlQ==}
+    engines: {node: ^14.13.1 || >=16.0.0}
+    dev: true
+
   /pretty-format@29.7.0:
     resolution: {integrity: sha512-Pdlw/oPxN+aXdmM9R00JVC9WVFoCLTKJvDVLgmJ+qAffBMxsV85l/Lu7sNx4zSzPyoL2euImuEwHhOXdEgNFZQ==}
     engines: {node: ^14.15.0 || ^16.10.0 || >=18.0.0}
@@ -1666,7 +1691,6 @@ packages:
 
   /tslib@2.6.2:
     resolution: {integrity: sha512-AEYxH93jGFPn/a2iVAwW87VuUIkR1FVUKB77NwMF7nBTDkDrrT/Hpt/IrCJ0QXhW27jTBDcf5ZY7w6RiqTMw2Q==}
-    dev: false
 
   /type-detect@4.0.8:
     resolution: {integrity: sha512-0fr/mIH1dlO+x7TlcMy+bIDqKPsw/70tVyeHW787goQjhmqaZe10uwLujubK9q9Lg6Fiho1KUKDYz0Z7k7g5/g==}

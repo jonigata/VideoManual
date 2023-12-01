@@ -22,21 +22,25 @@ const ffmpeg = new FFmpeg<FFmpegConfigurationGPLExtended>({
   config: 'gpl-extended',
 });
 
-export async function createOverlayedVideo({w, h}: {w: number, h: number}, {sw, sh}: {sw: number, sh: number}, d: number, scenes: Scene[], source: Blob): Promise<string> {
+export async function createOverlayedVideo({w, h}: {w: number, h: number}, {sw, sh}: {sw: number, sh: number}, d: number, title: string, scenes: Scene[], source: Blob, onProgress:(progress:number)=>void): Promise<string> {
   // 動画を、アスペクト比を維持したまま外枠の最大内接矩形にリサイズししたとき、
   // その残りの半分が壁の幅
   const wallWidth = (w - h * sw / sh) / 2;
 
   await waitForReady();
+  onProgress(10);
 
   // 下レイヤー
   await ffmpeg.writeFile('back.mp4', source);
+  onProgress(20);
 
   // 上レイヤー
   await createVideoWithImages(w, h, d, scenes);
+  onProgress(40);
 
   // オープニング
-  await createOpeningMovie(w, h, wallWidth);
+  await createOpeningMovie(w, h, wallWidth, title);
+  onProgress(70);
 
   // フィルターコンプレックスを使って動画をオーバーレイ
   console.log("************************************** B");
@@ -46,6 +50,7 @@ export async function createOverlayedVideo({w, h}: {w: number, h: number}, {sw, 
     `[0:v]scale=${w}:${h}:force_original_aspect_ratio=decrease,pad=${w}:${h}:(ow-iw)/2:(oh-ih)/2[back_scaled];[back_scaled][1:v]overlay=0:0`,
     'output.mp4'
   ]);
+  onProgress(100);
 
   const result = ffmpeg.readFile('output.mp4');
   const blob = new Blob([result], { type: 'video/mp4' });
@@ -92,8 +97,8 @@ async function createVideoWithImages(w: number, h: number, d: number, scenes: Sc
   ]);
 }
 
-async function createOpeningMovie(w: number, h: number, wallWidth: number) {
-  const canvases = await renderOpeningToMultipleCanvases(w, h, wallWidth);
+async function createOpeningMovie(w: number, h: number, wallWidth: number, caption: string) {
+  const canvases = await renderOpeningToMultipleCanvases(w, h, wallWidth, caption);
 
   // 各画像をファイルシステムに書き込む
   console.log("************************************** C", canvases.length);
@@ -147,7 +152,7 @@ export async function buildScenes(w: number, h: number, scenesData: Array<RawSce
         const sourcePosition = sceneData.position;
         const position = { x: sourcePosition.x * w, y: sourcePosition.y * h };
         const canvas = createCroppedCanvas(w, h, img, position, sceneData.scale);
-        drawCaption(canvas, sceneData.caption);
+        drawCaption(canvas, sceneData.caption, { x: 0.5, y: 0.8 }, 40);
         return { ...sceneData, canvas };
       })
       .catch(() => {
