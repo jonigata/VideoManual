@@ -18,28 +18,45 @@ function* square(size: number, speed: number): Generator<void, void, Screen> {
   }
 }
 
-function* wall(endWidth: number, side: string): Generator<void, void, Screen> {
+export function drawWall(endWidth: number, side: string, wallPaper:HTMLImageElement, {ctx, w, h, elapsed}: { ctx: CanvasRenderingContext2D, w: number, h: number, elapsed: number }) {
+  const iw = wallPaper.naturalWidth;
+  const ih = wallPaper.naturalHeight;
+
+  const color = '#ACB2FF';
+  const startWidth = w * 0.5;
+
+  const cw = easeRange(easeOutCubic, startWidth, endWidth, elapsed);
+  const width2 = cw + w * 0.05;
+  const curveStart = cw / width2;
+
+  const offscreen = document.createElement('canvas');
+  offscreen.width = ctx.canvas.width;
+  offscreen.height = ctx.canvas.height;
+  const octx = offscreen.getContext('2d')!;
+
+  if (side === 'left') {
+    const grad = octx.createLinearGradient(0 , 0 , width2, 0) ;
+    curveGradient(grad, "#ffffff", 16, v => easeOut(1-v), 0, curveStart, 1);
+    octx.fillStyle = grad;
+    octx.fillRect(0, 0, width2, h);
+    octx.globalCompositeOperation = 'source-in';
+    octx.drawImage(wallPaper, width2 - iw, 0, iw, ih);
+  } else {
+    const grad = octx.createLinearGradient(w, 0, w - width2, 0); 
+    curveGradient(grad, "#ffffff", 16, v => easeOut(1-v), 0, curveStart, 1);
+    octx.fillStyle = grad;
+    octx.fillRect(w - width2, 0, width2, h);
+    octx.globalCompositeOperation = 'source-in';
+    octx.drawImage(wallPaper, w - width2, 0, ih, iw);
+  }
+  ctx.drawImage(offscreen, 0, 0);
+
+}
+
+function* wall(endWidth: number, side: string, wallPaper: HTMLImageElement): Generator<void, void, Screen> {
   while (true) {
-    let {ctx, w, h, elapsed} = yield;
-
-    const color = '#ACB2FF';
-    const startWidth = w * 0.5;
-
-    const cw = easeRange(easeOutCubic, startWidth, endWidth, elapsed);
-    const width2 = cw + w * 0.05;
-    const curveStart = cw / width2;
-
-    if (side === 'left') {
-      const grad = ctx.createLinearGradient(0 , 0 , width2, 0) ;
-      curveGradient(grad, color, 16, v => easeOut(1-v), 0, curveStart, 1);
-      ctx.fillStyle = grad;
-      ctx.fillRect(0, 0, width2, h);
-    } else {
-      const grad = ctx.createLinearGradient(w, 0, w - width2, 0); 
-      curveGradient(grad, color, 16, v => easeOut(1-v), 0, curveStart, 1);
-      ctx.fillStyle = grad;
-      ctx.fillRect(w - width2, 0, width2, h);
-    }
+    let scr = yield;
+    drawWall(endWidth, side, wallPaper, scr);
   }
 }
 
@@ -69,17 +86,18 @@ function* label(caption: string): Generator<void, void, Screen> {
   while (true) {
     let {ctx, w, h, elapsed} = yield;
     ctx.globalAlpha = easeRange(easeOutCubic, 0, 1, elapsed);
-    drawCaption(ctx.canvas, caption, { x: 0.5, y: 0.5 }, 80);
+    drawCaption(ctx, caption, { x: 0.5, y: 0.5 }, 80);
   }
 }
 
 
 async function setUpOpeningGenerators(wallWidth: number, caption: string) {
   const smile = await loadImage('smile.png');
+  const wallPaper = await loadImage('wall.png');
 
   const gs: Generator<void, void, Screen>[] = [];
-  gs.push(wall(wallWidth, 'left'));
-  gs.push(wall(wallWidth, 'right'));
+  gs.push(wall(wallWidth, 'left', wallPaper));
+  gs.push(wall(wallWidth, 'right', wallPaper));
   gs.push(square(0.04, 300));
   gs.push(square(0.045, 450));
   gs.push(square(0.05, 700));
@@ -101,8 +119,9 @@ export async function renderOpeningToSingleCanvas(canvas: HTMLCanvasElement, wal
   const scr: Screen = { ctx, w, h, duration, fps, elapsed };
   await cycle(
     elapsed => {
-      ctx.fillStyle = "black";
-      ctx.fillRect(0, 0, w, h);
+      //ctx.fillStyle = "black";
+      //ctx.fillRect(0, 0, w, h);
+      ctx.clearRect(0, 0, w, h)
       return {...scr, elapsed}
     },
     canvas => {}, 

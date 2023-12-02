@@ -2,8 +2,8 @@ import {
   FFmpeg,
   type FFmpegConfigurationGPLExtended,
 } from '@diffusion-studio/ffmpeg-js';
-import { createCroppedCanvas, drawCaption, loadImage } from './imageEdit';
-import { renderOpeningToMultipleCanvases } from './opening';
+import { drawCaption, loadImage } from './imageEdit';
+import { drawWall, renderOpeningToMultipleCanvases } from './opening';
 
 export interface RawScene {
   key: number;
@@ -22,10 +22,15 @@ const ffmpeg = new FFmpeg<FFmpegConfigurationGPLExtended>({
   config: 'gpl-extended',
 });
 
-export async function createOverlayedVideo({w, h}: {w: number, h: number}, {sw, sh}: {sw: number, sh: number}, d: number, title: string, scenes: Scene[], source: Blob, onProgress:(progress:number)=>void): Promise<string> {
+function calculrateWallWidth(w: number, h: number, sw: number, sh: number): number {
   // 動画を、アスペクト比を維持したまま外枠の最大内接矩形にリサイズししたとき、
   // その残りの半分が壁の幅
   const wallWidth = (w - h * sw / sh) / 2;
+  return wallWidth;
+}
+
+export async function createOverlayedVideo({w, h}: {w: number, h: number}, {sw, sh}: {sw: number, sh: number}, d: number, title: string, scenes: Scene[], source: Blob, onProgress:(progress:number)=>void): Promise<string> {
+  const wallWidth = calculrateWallWidth(w, h, sw, sh);
 
   await waitForReady();
   onProgress(10);
@@ -35,7 +40,7 @@ export async function createOverlayedVideo({w, h}: {w: number, h: number}, {sw, 
   onProgress(20);
 
   // 上レイヤー
-  await createVideoWithImages(w, h, d, scenes);
+  await createVideoWithImages(w, h, d - 2, scenes);
   onProgress(40);
 
   // オープニング
@@ -44,13 +49,23 @@ export async function createOverlayedVideo({w, h}: {w: number, h: number}, {sw, 
 
   // フィルターコンプレックスを使って動画をオーバーレイ
   console.log("************************************** B");
+/*
   await ffmpeg.exec([
     '-i', 'back.mp4', '-i', 'opening.mov',
     '-filter_complex', 
     `[0:v]scale=${w}:${h}:force_original_aspect_ratio=decrease,pad=${w}:${h}:(ow-iw)/2:(oh-ih)/2[back_scaled];[back_scaled][1:v]overlay=0:0`,
     'output.mp4'
   ]);
-  onProgress(100);
+*/
+await ffmpeg.exec([
+  '-i', 'back.mp4', '-i', 'opening.mov', '-i', 'front.mov',
+  '-filter_complex', 
+  `[1:v][2:v]concat=n=2:v=1:a=0[front];
+  [0:v]scale=${w}:${h}:force_original_aspect_ratio=decrease,pad=${w}:${h}:(ow-iw)/2:(oh-ih)/2[back_scaled];
+  [back_scaled][front]overlay=0:0`,
+  'output.mp4'
+]);
+onProgress(100);
 
   const result = ffmpeg.readFile('output.mp4');
   const blob = new Blob([result], { type: 'video/mp4' });
@@ -145,20 +160,33 @@ async function writeCanvasToFile(canvas: HTMLCanvasElement, filename: string): P
   });
 }
 
-export async function buildScenes(w: number, h: number, scenesData: Array<RawScene>): Promise<Scene[]> {
-  const promises = scenesData.map((sceneData) => 
-    loadImage(sceneData.image)
-      .then(img => {
-        const sourcePosition = sceneData.position;
-        const position = { x: sourcePosition.x * w, y: sourcePosition.y * h };
-        const canvas = createCroppedCanvas(w, h, img, position, sceneData.scale);
-        drawCaption(canvas, sceneData.caption, { x: 0.5, y: 0.8 }, 40);
-        return { ...sceneData, canvas };
-      })
-      .catch(() => {
-        throw new Error(`Failed to load image at ${sceneData.image}`);
-      })
-  );
+async function drawScene({w, h}: {w: number, h: number}, {sw, sh}: {sw: number, sh: number}, scene: RawScene): Promise<Scene> {
+  const wallWidth = calculrateWallWidth(w, h, sw, sh);
+
+  const canvas = document.createElement('canvas');
+  canvas.width = w;
+  canvas.height = h;
+  const ctx = canvas.getContext('2d')!;
+
+  const wallPaper = await loadImage('wall.png');
+  drawWall(wallWidth, 'left', wallPaper, { ctx, w, h, elapsed: 3.0 });
+  drawWall(wallWidth, 'right', wallPaper, { ctx, w, h, elapsed: 3.0 });
+
+  const image = await loadImage(scene.image+".png");
+  const iw = image.naturalWidth * scene.scale.x;
+  const ih = image.naturalHeight * scene.scale.y;
+
+  const x = scene.position.x * w - iw / 2;
+  const y = scene.position.y * h - ih / 2;
+  ctx.drawImage(image, x, y, iw, ih);
+
+  drawCaption(ctx, scene.caption, { x: 0.5, y: 0.8 }, 60);
+
+  return { ...scene, canvas };
+}
+
+export async function buildScenes({w, h}: {w: number, h: number}, {sw, sh}: {sw: number, sh: number}, scenesData: RawScene[]): Promise<Scene[]> {
+  const promises = scenesData.map((sceneData) => drawScene({w, h}, {sw, sh}, sceneData));
 
   try {
     return await Promise.all(promises);

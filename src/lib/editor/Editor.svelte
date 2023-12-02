@@ -4,7 +4,6 @@
   import Script from "./Script.svelte";
   import { type RawScene, createOverlayedVideo, buildScenes } from '../processing/buildMovie';
   import { Button, Progressbar, Input }  from "flowbite-svelte";
-  import { tick } from "svelte";
 
   export let file: File;
 
@@ -12,7 +11,7 @@
   let generatedVideo: string = '';
   let generate = -1;
   let title: string="フキダシつき画像を作ろう！";
-  let script = [] as RawScene[];
+  let script: RawScene[] = [];
   let sourceVideoElement: HTMLVideoElement;
 
   let trackSrc = '';
@@ -20,16 +19,18 @@
   let label = 'english_captions';
   let { sw, sh } = { sw: 1280, sh: 640 };    // videoそのもののサイズ
   let { w, h } = { w: 1280, h: 640 };        // elementのサイズ
+  let loaded = false;
 
   function onLoadedMetaData(e: Event) {
     const video = e.target as HTMLVideoElement;
     sw = video.videoWidth;
     sh = video.videoHeight;
+    loaded = true;
   }
 
   async function onGenerate() {
     generate = 0;
-    const scenes = await buildScenes(w, h, script);
+    const scenes = await buildScenes({w, h}, {sw, sh}, script);
     generate = 50;
     generatedVideo = await createOverlayedVideo({w, h}, {sw, sh}, 5, title, scenes, file, progress => generate = progress);
     generate = 100;
@@ -64,7 +65,7 @@
     {#if 0 <= generate}
       <Progressbar progress={generate} />      
     {:else}
-      <Button color="blue" class="w-full" on:click={onGenerate}>生成</Button>
+      <Button color="blue" class="w-full" on:click={onGenerate} disabled={!loaded}>生成</Button>
     {/if}
     {#if generatedVideo !== ''}
       <video class="video" controls src={generatedVideo}>

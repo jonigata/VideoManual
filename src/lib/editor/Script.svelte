@@ -10,6 +10,7 @@
   export let sourceVideo: HTMLVideoElement;
   
   let cookedScript: { scene: RawScene, capture: HTMLImageElement }[] = [];
+  let cursor = 0;
 
   async function captureScene(scene: RawScene, capture: HTMLImageElement): Promise<HTMLImageElement> {
     return new Promise(resolve => {
@@ -22,7 +23,6 @@
           canvas.width = video.videoWidth;
           canvas.height = video.videoHeight;
           const ctx = canvas.getContext('2d')!;
-          console.log(video.currentTime);
           ctx.drawImage(video, 0, 0);
           capture.src = canvas.toDataURL();
           console.log("capture done");
@@ -33,27 +33,61 @@
   }
 
   async function onAdd() {
-    const newEntry = { 
-      scene: { key: sourceVideo.currentTime, caption: 'キャプション', image: 'smile', position: { x: 0, y: 0 }, scale: { x: 1, y: 1 } },
-      capture: document.createElement('img') 
-    };
-    captureScene(newEntry.scene, newEntry.capture);
+    if (cookedScript.find(({scene}) => scene.key == cursor)) {
+      toast.push("同じ時間に追加することはできません");
+      return;
+    }
+
+    const newEntry = createEntry(cursor, 'キャプション', 'smile');
     const newScript = [...cookedScript, newEntry];
     newScript.sort((a, b) => a.scene.key - b.scene.key);
     cookedScript = [];
     await tick();
     cookedScript = newScript;
+    weaveScript();
   }
 
-  onMount(async () => {
-    cookedScript = script.map(scene => {
-      return {
-        scene,
-        capture: document.createElement('img')
-      };
-    });
+  async function onDelete(e: CustomEvent<RawScene>) {
+    const newScript = cookedScript.filter(({scene}) => scene.key != e.detail.key);
+    cookedScript = [];
+    await tick();
+    cookedScript = newScript;
+    weaveScript();
+  }
 
+  function weaveScript() {
+    script = cookedScript.map(({scene}) => scene);
+  }
 
+  function createEntry(key: number, caption:string, image: string) {
+    const newEntry = {
+       scene: { key, caption, image, position: { x: 0.85, y: 0.8 }, scale: { x: 0.6, y: 0.6 }  } ,
+       capture: document.createElement('img') 
+    };
+    captureScene(newEntry.scene, newEntry.capture);
+    return newEntry;
+  }
+
+  onMount(() => {
+    sourceVideo.addEventListener(
+      'seeked',
+      () => {
+        cursor = sourceVideo.currentTime;
+      }
+    );
+    sourceVideo.addEventListener(
+      'loadedmetadata',
+      () => {
+        console.log("loadedmetadata");
+        const newEntry = 
+        cookedScript = [
+          createEntry(2, 'ここから本編', 'standard'),
+          createEntry(sourceVideo.duration - 1, 'またね', 'goodbye')
+        ];
+        weaveScript();
+      },
+      { once: true }
+    );
   });
 
 </script>
@@ -62,10 +96,10 @@
   <Label>台本</Label>
   <Timeline>
     {#each cookedScript as {scene, capture}}
-      <TimelineScene scene={scene} capture={capture}/>
+      <TimelineScene scene={scene} capture={capture} on:delete={onDelete}/>
     {/each}
   </Timeline>
-  <Button on:click={onAdd}>+</Button>
+  <Button on:click={onAdd} disabled={cursor < 2}>+</Button>
 </div>
 
 <style>

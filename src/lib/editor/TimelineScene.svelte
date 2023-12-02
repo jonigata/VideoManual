@@ -3,6 +3,9 @@
   import { TimelineItem, Input, Button, Modal } from 'flowbite-svelte';
   import HBox from "../layout/HBox.svelte";
   import { onMount } from 'svelte';
+  import { createEventDispatcher } from "svelte";
+
+  const dispatch = createEventDispatcher();
 
   export let scene: RawScene;
   export let capture: HTMLImageElement;
@@ -19,7 +22,7 @@
   };
 
   function onDelete() {
-
+    dispatch("delete", scene);
   }
 
   onMount(() => {
