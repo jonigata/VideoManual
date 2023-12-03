@@ -2,8 +2,10 @@
   import type { RawScene } from '../processing/buildMovie';
   import { TimelineItem, Input, Button, Modal } from 'flowbite-svelte';
   import HBox from "../layout/HBox.svelte";
+  import VBox from "../layout/VBox.svelte";
   import { onMount } from 'svelte';
   import { createEventDispatcher } from "svelte";
+  import { RadioButton, ButtonGroup } from 'flowbite-svelte';
 
   const dispatch = createEventDispatcher();
 
@@ -37,7 +39,13 @@
   <div class="header">{formatTime(scene.key)}<Button class="h-6" color="blue" size="xs" on:click={onDelete}>-</Button></div>
   <HBox className="justify-between gap-2">
     <img class="capture" alt="capture" bind:this={captureImage}/>
-    <Input type="text" id="caption" placeholder="キャプション" size="lg" bind:value={scene.caption} required/>
+    <VBox className="gap-2">
+      <Input type="text" id="caption" placeholder="キャプション" size="lg" bind:value={scene.caption} required/>
+      <ButtonGroup>
+        <RadioButton value={"upper"} bind:group={scene.captionPosition} size="sm" class="h-6">上</RadioButton>
+        <RadioButton value={"lower"} bind:group={scene.captionPosition} size="sm" class="h-6">下</RadioButton>
+      </ButtonGroup>
+    </VBox>
     <!-- svelte-ignore a11y-click-events-have-key-events -->
     <!-- svelte-ignore a11y-no-noninteractive-element-interactions -->
     <img src="./{scene.image}.png" class="face" alt="face" on:click={() => faceChooser = true}/>

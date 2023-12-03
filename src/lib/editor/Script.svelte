@@ -1,10 +1,12 @@
 <script lang="ts">
   import { Label }  from "flowbite-svelte";
   import type { RawScene } from '../processing/buildMovie';
-  import { Timeline, TimelineItem, Button } from 'flowbite-svelte';
+  import { Timeline, Button } from 'flowbite-svelte';
   import TimelineScene from "./TimelineScene.svelte";
   import { tick, onMount } from "svelte";
   import { toast } from '@zerodevx/svelte-toast'
+  import HBox from "../layout/HBox.svelte";
+	import { FileDrop } from 'svelte-droplet'
 
   export let script: RawScene[] = [];
   export let sourceVideo: HTMLVideoElement;
@@ -55,13 +57,41 @@
     weaveScript();
   }
 
+  function onSave() {
+    const json = JSON.stringify(script, null, 2);
+    const blob = new Blob([json], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'script.json';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+  }
+
+  function onLoad(files: File[]) {
+    console.log(files);
+    const file = files[0];
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const data = event.target!.result;
+      script = JSON.parse(data as string);
+      cookedScript = script.map(({key, caption, image}) => {
+        const newEntry = createEntry(key, caption, image);
+        return newEntry;
+      });
+    };
+    reader.readAsText(file);
+
+  }
+
   function weaveScript() {
     script = cookedScript.map(({scene}) => scene);
   }
 
   function createEntry(key: number, caption:string, image: string) {
     const newEntry = {
-       scene: { key, caption, image, position: { x: 0.85, y: 0.8 }, scale: { x: 0.6, y: 0.6 }  } ,
+       scene: { key, caption, image, position: { x: 0.85, y: 0.8 }, scale: { x: 0.6, y: 0.6 }, captionPosition: "lower"  } as RawScene,
        capture: document.createElement('img') 
     };
     captureScene(newEntry.scene, newEntry.capture);
@@ -99,7 +129,13 @@
       <TimelineScene scene={scene} capture={capture} on:delete={onDelete}/>
     {/each}
   </Timeline>
-  <Button on:click={onAdd} disabled={cursor < 2}>+</Button>
+  <HBox className="gap-4">
+    <Button on:click={onAdd} disabled={cursor < 2}>+</Button>
+    <Button color="green" class="w-32" on:click={onSave}>Save JSON</Button>
+    <FileDrop handleFiles={onLoad} acceptedMimes={["application/json"]} let:droppable>
+      <div class="drop-zone" class:droppable>JSONをここにドロップ</div>
+    </FileDrop>
+  </HBox>
 </div>
 
 <style>
@@ -107,4 +143,14 @@
     width: 100%;
     height: 400px;
   }    
+  .drop-zone {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    border: 2px dashed #4B5563;
+    border-radius: 0.5rem;
+    background-color: #F3F4F6;
+    width: 400px;
+    height: 40px;
+}  
 </style>

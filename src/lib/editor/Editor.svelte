@@ -37,16 +37,16 @@
 
     await new Promise(resolve => setTimeout(resolve, 1000));
     generate = -1;
-    /*
+  }
+
+  function onDownload() {
     const a = document.createElement('a');
-    a.href = videoSource;
+    a.href = generatedVideo;
     a.download = 'black_background.mp4';
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
-*/
   }
-
 
 </script>
 
@@ -72,6 +72,7 @@
         <track src={trackSrc} kind="captions" {srclang} {label} />
         Your browser does not support the video tag.
       </video>
+      <Button color="green" class="w-full" on:click={onDownload}>ダウンロード</Button>
     {/if}
     <div hidden>
       <span style="font-family: '源暎エムゴ';">源暎エムゴ</span>

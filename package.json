@@ -30,7 +30,9 @@
     "@ffmpeg/util": "^0.12.1",
     "@svelte-web-fonts/google": "^1.0.4",
     "@tsconfig/svelte": "^5.0.2",
+    "openai": "^4.20.1",
     "svelte-check": "^3.6.2",
+    "svelte-droplet": "^1.0.0",
     "svelte-file-dropzone": "^2.0.2",
     "vitest": "^0.34.6"
   }

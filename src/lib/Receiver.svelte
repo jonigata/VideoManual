@@ -1,20 +1,33 @@
 <script lang="ts">
-	import { filedrop } from "filedrop-svelte";
-	import type { FileDropSelectEvent, FileDropOptions } from "filedrop-svelte";
+	import { FileDrop } from 'svelte-droplet'
   import { createEventDispatcher } from "svelte";
+  import { createVoice } from "./processing/voice";
+  import Motion from "./Motion.svelte";
 
-	let options: FileDropOptions = { accept: ".mp4,.avi,.mov,.webm" };
+  let audio: HTMLAudioElement;
 
   const dispatch = createEventDispatcher();
 
-  function onDrop(event: CustomEvent<FileDropSelectEvent>) {
-    if (event.detail.files.accepted.length === 0) return;
-    dispatch("drop", event.detail.files.accepted[0]);
+  function onDrop(files: File[]) {
+    if (files.length === 0) return;
+    dispatch("drop", files[0]);
+  }
+
+  async function onVoice() {
+    const mp3 = await createVoice("私はフレームプランナーの精です");
+    const url = URL.createObjectURL(mp3);
+    audio.src = url;
+    audio.play();
   }
 </script>
 
-<div class="drop-zone" use:filedrop={options} on:filedrop={onDrop}>
-  <p class="text-lg">ファイルをここにドロップ</p>
+<FileDrop handleFiles={onDrop} acceptedMimes={["video/*"]} let:droppable>
+	<div class="drop-zone" class:droppable>Select or drop files here</div>
+</FileDrop>
+<div hidden>
+  <button on:click={onVoice}>ボイス</button>
+  <audio bind:this={audio}>オーディオ</audio>
+  <Motion/>
 </div>
 
 <style>

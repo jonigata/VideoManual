@@ -2,7 +2,6 @@
   import Receiver from "./lib/Receiver.svelte";
   import Editor from "./lib/editor/Editor.svelte";
   import Font from "./lib/Font.svelte";
-  import Motion from "./lib/Motion.svelte";
   import { SvelteToast } from '@zerodevx/svelte-toast'
 
   let file: File | null = null;
@@ -20,7 +19,6 @@
     <div style="width: 1280px;height: 720px;">
       <Receiver on:drop={onDrop}/>
     </div>
-    <Motion/>
   {/if}
   <div hidden>
     <Font/>

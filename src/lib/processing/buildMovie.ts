@@ -11,6 +11,7 @@ export interface RawScene {
   position: { x: number, y: number };
   scale: { x: number, y: number };
   caption: string;
+  captionPosition: 'upper' | 'lower';
 }
 
 export interface Scene {
@@ -35,6 +36,9 @@ export async function createOverlayedVideo({w, h}: {w: number, h: number}, {sw, 
   await waitForReady();
   onProgress(10);
 
+  // BGM
+  await createBGM();
+
   // 下レイヤー
   await ffmpeg.writeFile('back.mp4', source);
   onProgress(20);
@@ -49,28 +53,42 @@ export async function createOverlayedVideo({w, h}: {w: number, h: number}, {sw, 
 
   // フィルターコンプレックスを使って動画をオーバーレイ
   console.log("************************************** B");
-/*
   await ffmpeg.exec([
-    '-i', 'back.mp4', '-i', 'opening.mov',
+    '-i', 'back.mp4', '-i', 'opening.mov', '-i', 'front.mov',
     '-filter_complex', 
-    `[0:v]scale=${w}:${h}:force_original_aspect_ratio=decrease,pad=${w}:${h}:(ow-iw)/2:(oh-ih)/2[back_scaled];[back_scaled][1:v]overlay=0:0`,
+    `[1:v][2:v]concat=n=2:v=1:a=0[front];
+    [0:v]scale=${w}:${h}:force_original_aspect_ratio=decrease,pad=${w}:${h}:(ow-iw)/2:(oh-ih)/2[back_scaled];
+    [back_scaled][front]overlay=0:0`,
+    'video.mp4'
+  ]);
+  onProgress(90);
+
+  // BGMを合成
+  await ffmpeg.exec([
+    '-i', 'video.mp4', '-stream_loop', '-1', '-i', 'bgm.mp3',
+    '-c:v', 'copy', '-c:a', 'aac', '-shortest',
     'output.mp4'
   ]);
-*/
-await ffmpeg.exec([
-  '-i', 'back.mp4', '-i', 'opening.mov', '-i', 'front.mov',
-  '-filter_complex', 
-  `[1:v][2:v]concat=n=2:v=1:a=0[front];
-  [0:v]scale=${w}:${h}:force_original_aspect_ratio=decrease,pad=${w}:${h}:(ow-iw)/2:(oh-ih)/2[back_scaled];
-  [back_scaled][front]overlay=0:0`,
-  'output.mp4'
-]);
-onProgress(100);
+  onProgress(100);
 
   const result = ffmpeg.readFile('output.mp4');
   const blob = new Blob([result], { type: 'video/mp4' });
   const url = URL.createObjectURL(blob);
   return url;
+}
+
+async function createBGM() {
+  try {
+    const response = await fetch('./Osampo_Biyori.mp3');
+    if (!response.ok) {
+      throw new Error(`Network response was not ok: ${response.statusText}`);
+    }
+    const blob = await response.blob();
+    await ffmpeg.writeFile('bgm.mp3', blob);
+  } catch (error) {
+    console.error('Error fetching MP3 file:', error);
+    throw error; // エラーを再スロー
+  }
 }
 
 async function createVideoWithImages(w: number, h: number, d: number, scenes: Scene[]): Promise<void> {
@@ -160,7 +178,7 @@ async function writeCanvasToFile(canvas: HTMLCanvasElement, filename: string): P
   });
 }
 
-async function drawScene({w, h}: {w: number, h: number}, {sw, sh}: {sw: number, sh: number}, scene: RawScene): Promise<Scene> {
+async function drawScene({w, h}: {w: number, h: number}, {sw, sh}: {sw: number, sh: number}, scene: RawScene, last: boolean): Promise<Scene> {
   const wallWidth = calculrateWallWidth(w, h, sw, sh);
 
   const canvas = document.createElement('canvas');
@@ -180,13 +198,24 @@ async function drawScene({w, h}: {w: number, h: number}, {sw, sh}: {sw: number, 
   const y = scene.position.y * h - ih / 2;
   ctx.drawImage(image, x, y, iw, ih);
 
-  drawCaption(ctx, scene.caption, { x: 0.5, y: 0.8 }, 60);
+  let captionPosition = { x: 0.5, y: 0.5 };
+  if (scene.captionPosition == "upper") {
+    captionPosition = { x: 0.5, y: 0.05 };
+  } else {
+    captionPosition = { x: 0.5, y: 0.95 };
+  }
+
+  drawCaption(ctx, scene.caption, captionPosition, 50);
+
+  if (last) {
+    drawCaption(ctx, "BGM: Otologic" , {x:0.1, y:0.95}, 30);
+  }
 
   return { ...scene, canvas };
 }
 
 export async function buildScenes({w, h}: {w: number, h: number}, {sw, sh}: {sw: number, sh: number}, scenesData: RawScene[]): Promise<Scene[]> {
-  const promises = scenesData.map((sceneData) => drawScene({w, h}, {sw, sh}, sceneData));
+  const promises = scenesData.map((sceneData, i) => drawScene({w, h}, {sw, sh}, sceneData, i === scenesData.length - 1));
 
   try {
     return await Promise.all(promises);
