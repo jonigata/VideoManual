@@ -7,7 +7,8 @@
     "dev": "vite --port 5174",
     "build": "vite build",
     "check": "svelte-check --tsconfig ./tsconfig.svelte-check.json",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "deploy": "firebase deploy --only hosting"
   },
   "devDependencies": {
     "@sveltejs/vite-plugin-svelte": "^2.4.2",

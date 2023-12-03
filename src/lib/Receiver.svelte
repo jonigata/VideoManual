@@ -22,7 +22,7 @@
 </script>
 
 <FileDrop handleFiles={onDrop} acceptedMimes={["video/*"]} let:droppable>
-	<div class="drop-zone" class:droppable>Select or drop files here</div>
+	<div class="drop-zone" class:droppable>ムービーをここにドロップ</div>
 </FileDrop>
 <div hidden>
   <button on:click={onVoice}>ボイス</button>
