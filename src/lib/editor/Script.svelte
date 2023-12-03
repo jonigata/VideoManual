@@ -124,6 +124,7 @@
 
 <div class="script">
   <Label>台本</Label>
+  <p>一件目は必ず0:02.00にしてください</p>
   <Timeline>
     {#each cookedScript as {scene, capture}}
       <TimelineScene scene={scene} capture={capture} on:delete={onDelete}/>

@@ -30,11 +30,15 @@ function calculrateWallWidth(w: number, h: number, sw: number, sh: number): numb
   return wallWidth;
 }
 
-export async function createOverlayedVideo({w, h}: {w: number, h: number}, {sw, sh}: {sw: number, sh: number}, d: number, title: string, scenes: Scene[], source: Blob, onProgress:(progress:number)=>void): Promise<string> {
+export async function createOverlayedVideo({w, h}: {w: number, h: number}, {sw, sh}: {sw: number, sh: number}, title: string, scenes: Scene[], source: Blob, onProgress:(progress:number)=>void): Promise<string> {
   const wallWidth = calculrateWallWidth(w, h, sw, sh);
 
   await waitForReady();
   onProgress(10);
+
+  const meta = await ffmpeg.meta(source);
+  const fps = meta.streams.video[0].fps ?? 30;
+  const duration = meta.duration!;
 
   // BGM
   await createBGM();
@@ -43,22 +47,22 @@ export async function createOverlayedVideo({w, h}: {w: number, h: number}, {sw, 
   await ffmpeg.writeFile('back.mp4', source);
   onProgress(20);
 
-  // 上レイヤー
-  await createVideoWithImages(w, h, d - 2, scenes);
+  // オープニング
+  await createOpeningMovie(w, h, fps, wallWidth, title);
   onProgress(40);
 
-  // オープニング
-  await createOpeningMovie(w, h, wallWidth, title);
+  // 台本
+  await createVideoWithImages(w, h, fps, duration, scenes);
   onProgress(70);
 
   // フィルターコンプレックスを使って動画をオーバーレイ
-  console.log("************************************** B");
+  console.log("************************************** C");
   await ffmpeg.exec([
     '-i', 'back.mp4', '-i', 'opening.mov', '-i', 'front.mov',
     '-filter_complex', 
     `[1:v][2:v]concat=n=2:v=1:a=0[front];
     [0:v]scale=${w}:${h}:force_original_aspect_ratio=decrease,pad=${w}:${h}:(ow-iw)/2:(oh-ih)/2[back_scaled];
-    [back_scaled][front]overlay=0:0`,
+    [back_scaled][front]overlay=0:0:shortest=1`,
     'video.mp4'
   ]);
   onProgress(90);
@@ -101,8 +105,8 @@ async function createBGM() {
   }
 }
 
-async function createVideoWithImages(w: number, h: number, d: number, scenes: Scene[]): Promise<void> {
-  console.log('createVideoWithImages');
+async function createVideoWithImages(w: number, h: number, fps: number, d: number, scenes: Scene[]): Promise<void> {
+  console.log('createVideoWithImages', w, h, fps, d);
   // 各画像をファイルシステムに書き込む
   for (let i = 0; i < scenes.length; i++) {
     const scene = scenes[i];
@@ -111,16 +115,17 @@ async function createVideoWithImages(w: number, h: number, d: number, scenes: Sc
 
   // 各画像の表示時間を設定するファイルを作成
   let fileListString = "";
+  let totalDuration = 0;
   for (let i = 0; i < scenes.length; i++) {
     fileListString += `file 'image${i}.png'\n`;
     const nextKey = i < scenes.length - 1 ? scenes[i + 1].key : d;
-    const duration = nextKey - scenes[i].key;
+    const currKey = i === 0 ? 2 : scenes[i].key;
+    const duration = nextKey - currKey;
     fileListString += `duration ${duration}\n`;
+    totalDuration += duration;
   }
 
-  // concatは最後の画像のdurationを無視するらしい
-  fileListString += `file 'image${scenes.length - 1}.png'\nduration 0\n`;
-
+  console.log("================ totalDuration", totalDuration);
   console.log(fileListString);
 
   // ファイルリストをテキストファイルに書き込む
@@ -128,25 +133,28 @@ async function createVideoWithImages(w: number, h: number, d: number, scenes: Sc
   const fileListBlob = new Blob([fileListString], { type: 'text/plain' });
   await ffmpeg.writeFile(fileListFilename, fileListBlob);
 
-  console.log(await ffmpeg.codecs());
+  // console.log(await ffmpeg.codecs());
 
   // 画像を連結して動画を作成
-  console.log("************************************** A");
+  console.log("************************************** B");
   await ffmpeg.exec([
-    '-f', 'concat', '-safe', '0', '-i', fileListFilename, 
+    '-f', 'concat', 
+    '-safe', '0', 
+    '-i', fileListFilename, 
     '-vcodec', 'prores_ks',
     '-s', `${w}x${h}`,
+    '-r', `${fps}`,
     'front.mov'
   ]);
 }
 
-async function createOpeningMovie(w: number, h: number, wallWidth: number, caption: string) {
-  const canvases = await renderOpeningToMultipleCanvases(w, h, wallWidth, caption);
+async function createOpeningMovie(w: number, h: number, fps: number, wallWidth: number, caption: string) {
+  const canvases = await renderOpeningToMultipleCanvases(w, h, fps, wallWidth, caption);
 
   // 各画像をファイルシステムに書き込む
-  console.log("************************************** C", canvases.length);
+  console.log("************************************** A", canvases.length);
   for (let i = 0; i < canvases.length; i++) {
-    document.body.appendChild(canvases[i]);
+    // document.body.appendChild(canvases[i]);
     await writeCanvasToFile(canvases[i], `opening${i}.png`);
   }
 
@@ -156,6 +164,7 @@ async function createOpeningMovie(w: number, h: number, wallWidth: number, capti
     '-framerate', '30', '-i', 'opening%d.png',
     '-vcodec', 'prores_ks',
     '-s', `${w}x${h}`,
+    '-r', `${fps}`,
     'opening.mov'
   ]);
 }

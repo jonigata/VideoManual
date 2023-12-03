@@ -70,7 +70,6 @@ function* face(image: HTMLImageElement): Generator<void, void, Screen> {
   while (true) {
     let {ctx, w, h, elapsed} = yield;
     const center = { x: easeRange(easeOutCubic, startX, endX, elapsed) * w, y: startY * h};
-    console.log(center);
 
     // draw image
     const imageWidth = image.width * scale.x;
@@ -128,9 +127,8 @@ export async function renderOpeningToSingleCanvas(canvas: HTMLCanvasElement, wal
     gs);
 } 
 
-export async function renderOpeningToMultipleCanvases(w: number, h: number, wallWidth: number, caption: string): Promise<HTMLCanvasElement[]> {
+export async function renderOpeningToMultipleCanvases(w: number, h: number, fps: number, wallWidth: number, caption: string): Promise<HTMLCanvasElement[]> {
   const duration = 2;
-  const fps = 30;
 
   const gs = await setUpOpeningGenerators(wallWidth, caption);
   const canvases: HTMLCanvasElement[] = [];

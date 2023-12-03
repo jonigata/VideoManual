@@ -32,7 +32,7 @@
     generate = 0;
     const scenes = await buildScenes({w, h}, {sw, sh}, script);
     generate = 50;
-    generatedVideo = await createOverlayedVideo({w, h}, {sw, sh}, 5, title, scenes, file, progress => generate = progress);
+    generatedVideo = await createOverlayedVideo({w, h}, {sw, sh}, title, scenes, file, progress => generate = progress);
     generate = 100;
 
     await new Promise(resolve => setTimeout(resolve, 1000));
