@@ -26,9 +26,8 @@ export function drawWall(endWidth: number, side: string, wallPaper:HTMLImageElem
   const startWidth = w * 0.5;
 
   const cw = easeRange(easeOutCubic, startWidth, endWidth, elapsed);
-  const width2 = cw + w * 0.05;
-  console.log(cw, width2);
-  const curveStart = cw / width2;
+  const margin = w * 0.05;
+  const curveStart = iw / (iw + margin);
 
   const offscreen = document.createElement('canvas');
   offscreen.width = ctx.canvas.width;
@@ -36,19 +35,21 @@ export function drawWall(endWidth: number, side: string, wallPaper:HTMLImageElem
   const octx = offscreen.getContext('2d')!;
 
   if (side === 'left') {
-    const grad = octx.createLinearGradient(0 , 0 , width2, 0) ;
+    const x0 = cw + margin - iw;
+    const grad = octx.createLinearGradient(x0, 0 ,x0 + iw, 0) ;
     curveGradient(grad, "#ffffff", 16, v => easeOut(1-v), 0, curveStart, 1);
     octx.fillStyle = grad;
-    octx.fillRect(0, 0, width2, h);
+    octx.fillRect(x0, 0, iw, h);
     octx.globalCompositeOperation = 'source-in';
-    octx.drawImage(wallPaper, width2 - iw, 0, iw, ih);
+    octx.drawImage(wallPaper, x0, 0, iw, ih);
   } else {
-    const grad = octx.createLinearGradient(w, 0, w - width2, 0); 
+    const x0 = w - cw - margin + iw;
+    const grad = octx.createLinearGradient(x0, 0, x0 - iw, 0); 
     curveGradient(grad, "#ffffff", 16, v => easeOut(1-v), 0, curveStart, 1);
     octx.fillStyle = grad;
-    octx.fillRect(w - width2, 0, width2, h);
+    octx.fillRect(x0 - iw, 0, iw, h);
     octx.globalCompositeOperation = 'source-in';
-    octx.drawImage(wallPaper, w - width2, 0, ih, iw);
+    octx.drawImage(wallPaper, x0 - iw, 0, iw, ih);
   }
   ctx.drawImage(offscreen, 0, 0);
 
