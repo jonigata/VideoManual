@@ -52,6 +52,7 @@ export async function createOverlayedVideo({w, h}: {w: number, h: number}, {sw, 
   onProgress(40);
 
   // 台本
+  ffmpeg.onProgress((progress) => { console.log('progress', progress); });
   await createVideoWithImages(w, h, fps, duration, scenes);
   onProgress(70);
 
@@ -68,21 +69,27 @@ export async function createOverlayedVideo({w, h}: {w: number, h: number}, {sw, 
   onProgress(90);
 
   // BGMを合成
-  await ffmpeg.exec([
-    '-i', 'video.mp4', 
-    '-i', 'bgm.mp3',
-    '-filter_complex', '[0:a][1:a]amix=inputs=2:duration=shortest',
-    '-c:v', 'copy', 
-    '-c:a', 'aac', 
-    'output.mp4'
-  ]);
-/*
-  await ffmpeg.exec([
-    '-i', 'video.mp4', '-stream_loop', '-1', '-i', 'bgm.mp3',
-    '-c:v', 'copy', '-c:a', 'aac', '-shortest',
-    'output.mp4'
-  ]);
-*/
+  if (0 < meta.streams.audio.length) {
+    await ffmpeg.exec([
+      '-i', 'video.mp4', 
+      '-i', 'bgm.mp3',
+      '-filter_complex', '[0:a][1:a]amix=inputs=2:duration=shortest',
+      '-c:v', 'copy', 
+      '-c:a', 'aac', 
+      'output.mp4'
+    ]);
+  } else {
+    await ffmpeg.exec([
+      '-i', 'video.mp4',
+      '-i', 'bgm.mp3',
+      '-map', '0:v',
+      '-map', '1:a',
+      '-c:v', 'copy',
+      '-c:a', 'aac',
+      '-shortest',
+      'output.mp4'
+    ]);
+  }
   onProgress(100);
 
   const result = ffmpeg.readFile('output.mp4');
@@ -124,6 +131,7 @@ async function createVideoWithImages(w: number, h: number, fps: number, d: numbe
     fileListString += `duration ${duration}\n`;
     totalDuration += duration;
   }
+  fileListString += `file 'image${scenes.length - 1}.png'\n`;
 
   console.log("================ totalDuration", totalDuration);
   console.log(fileListString);

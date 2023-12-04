@@ -27,6 +27,7 @@ export function drawWall(endWidth: number, side: string, wallPaper:HTMLImageElem
 
   const cw = easeRange(easeOutCubic, startWidth, endWidth, elapsed);
   const width2 = cw + w * 0.05;
+  console.log(cw, width2);
   const curveStart = cw / width2;
 
   const offscreen = document.createElement('canvas');

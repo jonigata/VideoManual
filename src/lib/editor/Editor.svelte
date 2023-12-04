@@ -17,8 +17,8 @@
   let trackSrc = '';
   let srclang = 'en';
   let label = 'english_captions';
-  let { sw, sh } = { sw: 1280, sh: 640 };    // videoそのもののサイズ
-  let { w, h } = { w: 1280, h: 640 };        // elementのサイズ
+  let { sw, sh } = { sw: 1280, sh: 720 };    // videoそのもののサイズ
+  let { w, h } = { w: 1280, h: 720 };        // elementのサイズ
   let loaded = false;
 
   function onLoadedMetaData(e: Event) {

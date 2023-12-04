@@ -92,6 +92,7 @@ export function curveGradient(
   grad.addColorStop(tStart, `${color}ff`);
   for (let i = 0; i <= n; i++) {
       let t = (i / n) * (tEnd - tEaseStart) + tEaseStart; // tEaseStart から tEnd までの範囲
+      console.log(t, i, n, tStart, tEaseStart, tEnd);
       let easeVal = (t - tEaseStart) / (tEnd - tEaseStart); // easeFunction は [0, 1) の範囲で定義
       let alpha = Math.round(easeFunction(easeVal) * 255);
       let hexAlpha = alpha.toString(16).padStart(2, '0');
