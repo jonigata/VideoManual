@@ -14,6 +14,10 @@
   let cookedScript: { scene: RawScene, capture: HTMLImageElement }[] = [];
   let cursor = 0;
 
+  setInterval(() => {
+    cursor = sourceVideo.currentTime;
+  }, 200);
+
   async function captureScene(scene: RawScene, capture: HTMLImageElement): Promise<HTMLImageElement> {
     return new Promise(resolve => {
       const video = document.createElement('video');
@@ -112,7 +116,7 @@
         const newEntry = 
         cookedScript = [
           createEntry(2, 'ここから本編', 'standard'),
-          createEntry(sourceVideo.duration - 1, 'またね', 'goodbye')
+          createEntry(sourceVideo.duration - 2, 'またね', 'goodbye')
         ];
         weaveScript();
       },

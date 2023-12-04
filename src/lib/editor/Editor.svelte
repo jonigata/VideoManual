@@ -42,7 +42,7 @@
   function onDownload() {
     const a = document.createElement('a');
     a.href = generatedVideo;
-    a.download = 'black_background.mp4';
+    a.download = 'VideoManual.mp4';
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);

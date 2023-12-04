@@ -24,7 +24,7 @@
 <FileDrop handleFiles={onDrop} acceptedMimes={["video/*"]} let:droppable>
 	<div class="drop-zone" class:droppable>ムービーをここにドロップ</div>
 </FileDrop>
-<div>
+<div hidden>
   <button on:click={onVoice}>ボイス</button>
   <audio bind:this={audio}>オーディオ</audio>
   <Motion/>

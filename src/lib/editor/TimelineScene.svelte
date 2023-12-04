@@ -12,7 +12,7 @@
   export let scene: RawScene;
   export let capture: HTMLImageElement;
 
-  let faces = ["smile", "standard", "goodbye"];
+  let faces = ["smile", "standard", "goodbye", "surprised"];
 
   let captureImage: HTMLImageElement;
   let faceChooser = false;
